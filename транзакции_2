@@ -1,0 +1,29 @@
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+--проверка "грязного чтения"
+SELECT * FROM Expeditions WHERE id_expedition = 10;
+--проверка потерянных изменений, не сработает, пока незавершит свое выполнение 1ая транзакция
+UPDATE Expeditions SET date_of_begining = '1999-10-30' WHERE id_expedition = 10;
+COMMIT
+
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+--грязное чтение + неповторяющееся чтение(данные изменятся после завершения работы 1 транзакции и 2 транзакция это увидит)
+SELECT * FROM Expeditions WHERE id_place = (SELECT id_place FROM Places WHERE city = 'Sisian' AND country = 'Armenia');
+SELECT * FROM Expeditions WHERE id_place = (SELECT id_place FROM Places WHERE city = 'Sisian' AND country = 'Armenia');
+COMMIT
+
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+-- проверка фантомного чтения(транзакция не должна увидеть новую строчку)
+SELECT * FROM Artifacts;
+-- проверка неповторяющегося чтения(в RR запрещено, поэтому будет ждать окончания 1 транзакции)
+SELECT * FROM Member_education;
+COMMIT 
+
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+-- проверка фантомного чтения()
+SELECT * FROM Members;
+COMMIT
+

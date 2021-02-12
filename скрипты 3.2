@@ -1,0 +1,73 @@
+SET ROLE postgres 
+REVOKE ALL ON Members From test;
+REVOKE ALL ON Artifacts From test;
+REVOKE ALL ON Expedition From test;
+DROP ROLE test
+--создание пользователя, который может подключатся к серверу(могут использоваться для начального подключения к бд)
+CREATE USER test;
+GRANT SELECT ON Members TO test;
+GRANT SELECT, UPDATE, INSERT ON Artifacts TO test
+GRANT SELECT(id_expedition, name_of_expedition, place, amount_of_days, salary), UPDATE(salary_per_day, artifacts, salary) ON Expedition TO test
+SET ROLE test
+-------------------------------------------------------------------------------------------------------------------------
+SELECT * FROM Members
+LIMIT 100;
+INSERT INTO Members (member_name, member_surname, bank_card, contact_data) VALUES
+	('Polina', 'Aravina', 'gess_november_8734561', '{"telephone_number": 89167688984, "mail": "2uiimed2@gmail.com"}');
+UPDATE Members SET member_surname = 'Skvorzov' WHERE id_member = 5;
+--------------------------------------------------------------------------------------------------------------------------
+SELECT * FROM Artifacts
+LIMIT 100;
+INSERT INTO Artifacts (id_artefact, id_member, name_of_artefact, name_of_expedition, cost_of_artefact, premium ,info_of_artefact) VALUES
+	(200000002,10, 'gold ring', 'Italy_Milan', 40000, 4000, '{"status": "Damaged", "epoch": "X"}' );
+UPDATE Artifacts SET name_of_artefact = 'gold_ring' WHERE id_artefact = 5
+--------------------------------------------------------------------------------------------------------------------------
+SELECT id_expedition, name_of_expedition, salary FROM Expedition
+LIMIT 100;
+SELECT name_of_expedition, amount_of_days, salary_per_day  FROM Expedition 
+LIMIT 100;
+INSERT INTO Expedition (id_member, name_of_expedition, place, amount_of_days, salary_per_day, artifacts, salary) VALUES
+	(10,'Italy_Milan', '{"country": "Italy", "city": "Milan"}', 15, 1000, '{gold ring, vase}', 15000 );
+UPDATE Expedition SET name_of_expedition = 'Italy_Rome' WHERE id_expedition = 5;
+UPDATE Expedition SET salary = 10000 WHERE id_expedition = 5;
+-------------------------------------------------------------------------------------------------------------------------
+CREATE USER user_1;
+SET ROLE postgres;
+REVOKE ALL ON All_salary From user_1;
+REVOKE ALL ON  Check_salary FROM user_1;
+REVOKE ALL ON All_salary_for_Milan FROM user_1;
+DROP ROLE user_1;
+SET ROLE user_1;
+---------------------------------------------------------------------------------------------------------------------------
+DROP VIEW All_salary 
+CREATE VIEW All_salary 
+	AS SELECT id_member, bank_card, salary, premium 
+		FROM Members Natural JOIN Expedition NATURAL JOIN Artifacts 
+		WHERE name_of_expedition = 'Italy_Milan'
+GRANT SELECT ON All_salary  TO user_1;
+SELECT * FROM All_salary
+LIMIT 100;
+-------------------------------------------------------------------------------------------------------------------------------------
+DROP VIEW Check_salary
+CREATE VIEW Check_salary
+	AS SELECT id_expedition, salary_per_day, amount_of_days, salary 
+		FROM Expedition
+		WHERE name_of_expedition = 'Russia_Kazan'
+		WITH LOCAL CHECK OPTION;
+GRANT SELECT, UPDATE(salary, salary_per_day) ON Check_salary TO user_1;
+SELECT * FROM Check_salary WHERE id_expedition = 30603683
+LIMIT 100;
+UPDATE Check_salary SET salary_per_day = 3000 WHERE id_expedition = 30603683
+-----------------------------------------------------------------------------------------------------------------------------------------
+SET ROLE postgres;
+GRANT user_1 TO test
+SET ROLE test
+----------------------------------------------------------------------------------------------------------------------------------------
+CREATE MATERIALIZED VIEW All_salary_for_Milan 
+	AS SELECT id_member, bank_card, salary, premium 
+		FROM Members Natural JOIN Expedition NATURAL JOIN Artifacts 
+		WHERE name_of_expedition = 'Italy_Milan'
+SELECT * FROM All_salary_for_Milan 
+LIMIT 100;
+GRANT SELECT ON All_salary_for_Milan  TO user_1;
+

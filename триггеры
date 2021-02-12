@@ -1,0 +1,84 @@
+----------------------------------------------------------------------------------------------------------------------------
+-- проверка новой строки в artifacts, проверяется id участника, id экспедиции, 
+--является ли этот участник участником экспедиции и соответствует ли статус экспедиции тому, чтобы туда вставлять 
+CREATE FUNCTION in_artifacts_trig()
+RETURNS trigger AS 
+	'BEGIN 
+		IF (SELECT count(*) 
+			FROM Members M
+			WHERE NEW.id_member = M.id_member) = 0
+		THEN 
+			RAISE EXCEPTION ''Member with id % does not exist'', NEW.id_member;
+		END IF;
+		IF (SELECT count(*) 
+			FROM Expeditions Exp
+			WHERE NEW.id_expedition = Exp.id_expedition) = 0
+		THEN 
+			RAISE EXCEPTION ''Expedition with id % does not exist'', NEW.id_expedition;
+		END IF;
+		IF (SELECT count(*) 
+			FROM (SELECT id_member FROM Expeditions_of_member Exp
+				  WHERE NEW.id_expedition = Exp.id_expedition) AS mem
+			WHERE NEW.id_member = mem.id_member) = 0
+		THEN 
+			RAISE EXCEPTION ''Member with id % is not a member from expedition with id %'', NEW.id_member, NEW.id_expedition;
+		END IF;
+		IF ((SELECT id_status FROM Expeditions Exp
+				  WHERE NEW.id_expedition = Exp.id_expedition) = 1 OR 
+			(SELECT id_status FROM Expeditions Exp
+				  WHERE NEW.id_expedition = Exp.id_expedition) = 3)
+		THEN 
+			RAISE EXCEPTION ''Expedition with id % was canceled or is going to be'', NEW.id_expedition;
+		END IF;
+		IF ((SELECT id_status FROM Expeditions Exp
+				  WHERE NEW.id_expedition = Exp.id_expedition) = 1 OR 
+			(SELECT id_status FROM Expeditions Exp
+				  WHERE NEW.id_expedition = Exp.id_expedition) = 3)
+		THEN 
+			RAISE EXCEPTION ''Expedition with id % was canceled or is going to be'', NEW.id_expedition;
+		END IF;
+		RAISE NOTICE ''INSERTED'';
+		RETURN NEW;
+	END;'  
+LANGUAGE plpgsql;
+	
+CREATE TRIGGER artifacts_trig
+BEFORE INSERT ON Artifacts
+FOR EACH ROW
+EXECUTE FUNCTION in_artifacts_trig();
+
+INSERT INTO Artifacts (id_member, id_expedition, name_of_artifact, cost_of_artifact, epoch, state_of_artifact) VALUES 
+	(1000, 1,'spoon', NULL, 'X', 'Ok');
+INSERT INTO Artifacts (id_member, id_expedition, name_of_artifact, cost_of_artifact, epoch, state_of_artifact) VALUES 
+	(1, 133,'spoon', NULL, 'X', 'Beyond repair');
+INSERT INTO Artifacts (id_member, id_expedition, name_of_artifact, cost_of_artifact, epoch, state_of_artifact) VALUES 
+	(10, 1,'spoon', NULL, 'X', 'Beyond repair');
+INSERT INTO Artifacts (id_member, id_expedition, name_of_artifact, cost_of_artifact, epoch, state_of_artifact) VALUES 
+	(15, 4,'spoon', NULL, 'X', 'Beyond repair');
+
+SELECT * FROM Expeditions_of_member
+SELECT * FROM Expeditions
+SELECT * FROM Artifacts
+
+-----------------------------------------------------------------------------------------------------------------------
+CREATE FUNCTION update_place_trig()
+RETURNS trigger AS 
+	'BEGIN 
+		IF ((SELECT count(*) 
+			FROM Places P
+			WHERE NEW.id_place = P.id_place) = 0)
+		THEN 
+			RAISE EXCEPTION ''Place with this id % does not exist'', NEW.id_place;
+		END IF;
+	RETURN NEW;
+	END;'  
+LANGUAGE plpgsql;
+	
+CREATE TRIGGER p_trig
+BEFORE UPDATE ON Expeditions
+FOR EACH ROW
+EXECUTE FUNCTION update_place_trig();
+
+UPDATE Expeditions SET id_place =10000 WHERE id_expedition = 7
+
+DROP TRIGGER p_trig ON Expeditions;

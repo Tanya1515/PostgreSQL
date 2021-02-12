@@ -1,0 +1,81 @@
+DROP TABLE Members;
+DROP TABLE Status;
+DROP TABLE Position_of_Member;
+DROP TABLE Place;
+DROP TABLE Expeditions;
+DROP TABLE Member_Education;
+DROP TABLE Expeditions_of_member;
+DROP TABLE Education;
+DROP TABLE Artifacts;
+
+CREATE TABLE Members (
+    id_member serial PRIMARY KEY,
+    name_of_member varchar(50) NOT NULL,
+    surname_of_member varchar(50) NOT NULL,
+    telephone_number char(11) NOT NULL UNIQUE,
+    mail text NOT NULL UNIQUE
+);
+
+CREATE TABLE Status (
+    id_status serial PRIMARY KEY,
+    status varchar(14) NOT NULL,
+    CHECK (status IN ('Canceled', 'Now', 'Is going to be', 'Passed'))
+);
+
+CREATE TABLE Position_of_Member (
+    id_position serial PRIMARY KEY,
+    position_of_member varchar(12) NOT NULL,
+    CHECK (position_of_member IN ('Student', 'Teacher', 'Postgraduate'))
+);
+
+CREATE TABLE Places (
+    id_place serial PRIMARY KEY,
+    country text NOT NULL,
+    city text NOT NULL,
+    name_of_place text NOT NULL,
+    geographical_coordinates varchar(20) NOT NULL
+);
+	
+CREATE TABLE Expeditions(
+    id_expedition serial PRIMARY KEY,
+    name_of_expedition text NOT NULL,
+    amount_of_people integer CONSTRAINT amount_ok CHECK (amount_of_people > 0) NOT NULL,
+    date_of_begining date NOT NULL,
+    date_of_end date NOT NULL,
+    CHECK (date_of_end > date_of_begining),
+    id_status integer REFERENCES Status (id_status) ON DELETE RESTRICT,
+    id_place integer REFERENCES Places (id_place) ON DELETE RESTRICT
+);
+
+CREATE TABLE Member_Education(
+    id_member integer REFERENCES Members (id_member) ON DELETE CASCADE,
+    id_education integer REFERENCES Educations (id_education) ON DELETE CASCADE
+);
+
+CREATE TABLE Educations(
+    id_education serial PRIMARY KEY,
+    university text NOT NULL,
+    faculty text NOT NULL, 
+    id_position integer REFERENCES Position_of_Member (id_position) ON DELETE RESTRICT
+);
+
+CREATE TABLE Expeditions_of_member(
+   id_member integer REFERENCES Members (id_member) ON DELETE CASCADE,
+   id_expedition integer REFERENCES Expeditions (id_expedition) ON DELETE CASCADE,
+   date_of_begining date NOT NULL,
+   date_of_end date NOT NULL,
+   CHECK (date_of_end > date_of_begining),
+   PRIMARY KEY (id_member, id_expedition)
+);
+
+CREATE TABLE Artifacts(
+    id_artifact serial PRIMARY KEY,
+    id_member integer,
+    id_expedition integer,
+	FOREIGN KEY (id_member, id_expedition) REFERENCES Expeditions_of_member (id_member, id_expedition)ON DELETE CASCADE,
+    name_of_artifact text NOT NULL,
+    cost_of_artifact money, 
+    epoch varchar(10),
+    state_of_artifact varchar(13) NOT NULL,
+    CHECK (state_of_artifact IN ('Ok', 'Damaged', 'Beyond repair'))
+);

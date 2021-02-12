@@ -1,0 +1,37 @@
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+--изменение данных
+UPDATE Expeditions SET amount_of_people= amount_of_people - 1  WHERE id_expedition = 10;
+--проверка, что данные изменились
+SELECT * FROM Expeditions WHERE id_expedition = 10;
+COMMIT
+
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+--изменение данных
+UPDATE Expeditions 
+	SET id_status = 3
+	WHERE id_place = (SELECT id_place FROM Places WHERE city = 'Sisian' AND country = 'Armenia');
+--проверка, что данные изменились
+SELECT * FROM Expeditions WHERE id_place = (SELECT id_place FROM Places WHERE city = 'Sisian' AND country = 'Armenia');
+COMMIT
+
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+--изменение данных
+UPDATE Member_Education SET id_education = 1 WHERE id_member = 3;
+INSERT INTO Artifacts VALUES 
+	(17, 15, 10, 'chatty', NULL, 'X', 'Beyond repair');
+--проверка, что данные изменились
+SELECT * FROM Artifacts;
+SELECT * FROM Member_education;
+COMMIT
+
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+INSERT INTO Members VALUES 
+	(21, 'Ivan', 'Popov', '89043198120', 'ivan21@gmail.com');
+--проверка, что данные изменились
+SELECT * FROM Members;
+COMMIT
+

@@ -1,0 +1,55 @@
+
+CREATE TABLE Members (
+  id_member serial PRIMARY KEY,
+  member_name varchar(50) NOT NULL,
+  member_surname varchar(50) NOT NULL,
+  bank_card text NOT NULL UNIQUE,
+  contact_data json
+);
+
+CREATE TABLE Expedition (
+  id_expedition serial PRIMARY KEY,
+  id_member integer,
+  name_of_expedition varchar(50) NOT NULL,
+  place json,
+  amount_of_days integer NOT NULL,
+  salary_per_day bigint NOT NULL,
+  CHECK (salary_per_day>0),
+  artifacts text[],
+  salary bigint NOT NULL,
+  CHECK (salary>0)
+);
+
+CREATE TABLE Artifacts (
+  id_artefact serial PRIMARY KEY,
+  id_member int,
+  name_of_artefact varchar(50),
+  name_of_expedition varchar(50),
+  cost_of_artefact bigint,
+  premium real,
+  info_of_artefact json
+);
+
+
+COPY Expedition(id_member,  name_of_expedition, place,amount_of_days, salary_per_day, artifacts, salary) FROM '/home/tanya/expeditions.csv' WITH DELIMITER ',';
+COPY Expedition(id_member,  name_of_expedition, place,amount_of_days, salary_per_day, artifacts, salary) FROM '/home/tanya/expeditions_2.csv' WITH DELIMITER ',';
+COPY Expedition(id_member,  name_of_expedition, place,amount_of_days, salary_per_day, artifacts, salary) FROM '/home/tanya/expeditions_1.csv' WITH DELIMITER ',';
+COPY Expedition(id_member,  name_of_expedition, place,amount_of_days, salary_per_day, artifacts, salary) FROM '/home/tanya/expeditions_3.csv' WITH DELIMITER ',';
+COPY Expedition(id_member,  name_of_expedition, place,amount_of_days, salary_per_day, artifacts, salary) FROM '/home/tanya/expeditions_4.csv' WITH DELIMITER ',';
+
+
+COPY Artifacts(id_member, name_of_artefact ,name_of_expedition, cost_of_artefact,premium,info_of_artefact ) FROM '/home/tanya/art.csv' WITH DELIMITER ',';
+COPY Artifacts(id_member, name_of_artefact ,name_of_expedition, cost_of_artefact,premium,info_of_artefact ) FROM '/home/tanya/art_1.csv' WITH DELIMITER ',';
+COPY Artifacts(id_member, name_of_artefact ,name_of_expedition, cost_of_artefact,premium,info_of_artefact ) FROM '/home/tanya/art_2.csv' WITH DELIMITER ',';
+COPY Artifacts(id_member, name_of_artefact ,name_of_expedition, cost_of_artefact,premium,info_of_artefact ) FROM '/home/tanya/art_3.csv' WITH DELIMITER ',';
+COPY Artifacts(id_member, name_of_artefact ,name_of_expedition, cost_of_artefact,premium,info_of_artefact ) FROM '/home/tanya/art_4.csv' WITH DELIMITER ',';
+
+
+COPY Members(member_name,  member_surname, bank_card, contact_data) FROM '/home/tanya/members.csv' WITH DELIMITER ',';
+
+SELECT count(id_expedition) AS count FROM Expedition
+SELECT count(id_artefact) AS count FROM Artifacts
+SELECT count(id_member) AS count FROM Members
+SELECT * FROM Members
+DROP Table Expedition
+

@@ -1,0 +1,139 @@
+SELECT * FROM Expedition WHERE id_member = 1
+LIMIT 100
+SELECT * FROM Artifacts WHERE name_of_expedition = 'Russia_Kazan'
+LIMIT 100
+SELECT * FROM Members
+-------------------------------------------------------------------------------------------------------------------------------------
+DROP FUNCTION Salary_for_member
+CREATE FUNCTION Salary_for_member(id_mem integer) RETURNS bigint
+AS $$
+	DECLARE 
+		artifact text;
+		rec RECORD;
+		curs CURSOR (key integer) FOR SELECT salary, amount_of_days, artifacts FROM  Expedition WHERE id_member = key;
+		i integer = 0;
+		artifacts text [];
+		salary_mem bigint = 0;
+	BEGIN	
+		OPEN curs(id_mem);
+		LOOP
+			i = i + 1;
+			FETCH curs INTO rec;
+			EXIT WHEN NOT FOUND;
+			IF (rec.amount_of_days < 0)
+				RAISE EXCEPTION 'ERROR: incorrect amount_of_days';
+			IF (rec.salary < 0)
+				RAISE EXCEPTION 'ERROR: incorrect amount_of_days'
+			IF rec.amount_of_days > 60 THEN 
+				rec.salary = rec.salary + 10000;
+			ELSIF rec.amount_of_days > 30 THEN 
+				rec.salary = rec.salary + 5000;
+			END IF;
+			artifacts = rec.artifacts;
+			FOREACH artifact IN ARRAY artifacts
+			LOOP 
+				rec.salary = rec.salary + 1000;
+			END LOOP;
+			salary_mem = salary_mem + rec.salary;
+			EXIT WHEN i>100;
+		END LOOP;
+		CLOSE curs;
+		RETURN salary_mem;
+	END	
+$$ LANGUAGE plpgsql;SELECT * FROM Expedition WHERE id_member = 1
+LIMIT 100
+SELECT * FROM Artifacts WHERE name_of_expedition = 'Russia_Kazan'
+LIMIT 100
+SELECT * FROM Members
+-------------------------------------------------------------------------------------------------------------------------------------
+DROP FUNCTION Salary_for_member
+CREATE FUNCTION Salary_for_member(id_mem integer) RETURNS bigint
+AS $$
+	DECLARE 
+		artifact text;
+		rec RECORD;
+		curs CURSOR (key integer) FOR SELECT salary, amount_of_days, artifacts FROM  Expedition WHERE id_member = key;
+		i integer = 0;
+		artifacts text [];
+		salary_mem bigint = 0;
+	BEGIN	
+		OPEN curs(id_mem);
+		LOOP
+			i = i + 1;
+			FETCH curs INTO rec;
+			EXIT WHEN NOT FOUND;
+			IF (rec.amount_of_days < 0)
+				RAISE EXCEPTION 'ERROR: incorrect amount_of_days';
+			IF (rec.salary < 0)
+				RAISE EXCEPTION 'ERROR: incorrect amount_of_days'
+			IF rec.amount_of_days > 60 THEN 
+				rec.salary = rec.salary + 10000;
+			ELSIF rec.amount_of_days > 30 THEN 
+				rec.salary = rec.salary + 5000;
+			END IF;
+			artifacts = rec.artifacts;
+			FOREACH artifact IN ARRAY artifacts
+			LOOP 
+				rec.salary = rec.salary + 1000;
+			END LOOP;
+			salary_mem = salary_mem + rec.salary;
+			EXIT WHEN i>100;
+		END LOOP;
+		CLOSE curs;
+		RETURN salary_mem;
+	END	
+$$ LANGUAGE plpgsql;
+--------------------------------------------------------------------------------------------------------------------------------------
+CREATE FUNCTION Card_of_member (id_mem integer) RETURNS text
+AS $$ 
+	DECLARE 
+		card text;
+	BEGIN
+		SELECT bank_card INTO card FROM Members WHERE id_member = id_mem;
+		IF NOT FOUND THEN 
+			RAISE EXCEPTION 'Member % is not found', id_mem;
+		END IF;
+		RETURN card;
+	END
+$$ LANGUAGE plpgsql;	
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+DO $$ 
+DECLARE 
+	salary_for_count bigint = 0;
+	card text;
+BEGIN
+	salary_for_count = Salary_for_member(1);
+	card = Card_of_member(1);
+	RAISE NOTICE 'Salary is % for member with bank_card %', salary_for_count, card;
+END;
+$$;
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT Card_of_member(2);
+SELECT Salary_for_member(2);
+--------------------------------------------------------------------------------------------------------------------------------------
+CREATE FUNCTION Card_of_member (id_mem integer) RETURNS text
+AS $$ 
+	DECLARE 
+		card text;
+	BEGIN
+		SELECT bank_card INTO card FROM Members WHERE id_member = id_mem;
+		IF NOT FOUND THEN 
+			RAISE EXCEPTION 'Member % is not found', id_mem;
+		END IF;
+		RETURN card;
+	END
+$$ LANGUAGE plpgsql;	
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+DO $$ 
+DECLARE 
+	salary_for_count bigint = 0;
+	card text;
+BEGIN
+	salary_for_count = Salary_for_member(1);
+	card = Card_of_member(1);
+	RAISE NOTICE 'Salary is % for member with bank_card %', salary_for_count, card;
+END;
+$$;
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT Card_of_member(2);
+SELECT Salary_for_member(2);

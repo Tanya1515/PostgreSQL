@@ -1,0 +1,112 @@
+-- вывод данных преподавателей, участвующих в конкретной экспедиции на данный момент, данные ранжированы по дате окончания экспедиции от поздней к ранней
+WITH exp_now AS(
+	SELECT id_expedition, country, city, name_of_place 
+	FROM (SELECT * FROM Expeditions NATURAL JOIN Status WHERE status = 'Now' and  name_of_expedition = 'Chersonesos2020') AS exp_now NATURAL JOIN Places),
+mem_of_exp_now AS(
+	SELECT * 
+	FROM exp_now NATURAL JOIN Expeditions_of_member NATURAL JOIN Members
+)
+SELECT name_of_member, surname_of_member, telephone_number, mail, date_of_begining, date_of_end, country, city, name_of_place
+FROM mem_of_exp_now NATURAL JOIN Member_Education NATURAL JOIN Educations NATURAL JOIN Position_of_Member WHERE position_of_member = 'Teacher'
+ORDER BY date_of_end DESC; 
+
+--вывод суммарной стоимости найденных артефактов, всех находок и их стоимости относительно каждого археолога
+WITH exp_res AS(
+	SELECT id_expedition, name_of_expedition 
+	FROM Expeditions WHERE (DATE '2020-05-01', DATE '2020-10-31') OVERLAPS (date_of_begining, date_of_end)),
+art_exp_res AS(
+	SELECT * 
+	FROM exp_res NATURAL JOIN Artifacts WHERE state_of_artifact = 'Ok')
+SELECT name_of_member, surname_of_member, name_of_artifact, cost_of_artifact, sum(cost_of_artifact) OVER (PARTITION BY id_member) AS "cost_of_all_artifact", name_of_expedition
+FROM art_exp_res NATURAL JOIN Expeditions_of_member NATURAL JOIN Members 
+ORDER BY "cost_of_all_artifact";
+
+--вывод данных археологов, которые могли контактировать с заболевшими на загранинчных раскопках людьми, так как учатся в одном вузе 
+WITH exp_abroad AS(
+	SELECT id_expedition
+	FROM  Expeditions AS exp NATURAL JOIN Places NATURAL JOIN Status
+	WHERE (DATE '2020-05-01', DATE '2020-10-05') OVERLAPS (exp.date_of_begining, exp.date_of_end) AND "country" NOT LIKE 'Russia' AND "status" LIKE 'Passed'
+),
+exp_mem_ill AS(
+	SELECT *
+	FROM exp_abroad NATURAL JOIN Expeditions_of_member NATURAL JOIN Members NATURAL JOIN Member_Education NATURAL JOIN Educations
+)
+SELECT id_member, name_of_member, surname_of_member, telephone_number, university
+FROM Members NATURAL JOIN Member_Education NATURAL JOIN Educations 
+WHERE EXISTS (SELECT university FROM exp_mem_ill WHERE Educations.university = exp_mem_ill.university )
+EXCEPT 
+SELECT id_member, name_of_member, surname_of_member, telephone_number, university
+FROM exp_mem_ill;
+
+-- выводит информацию об участниках, которые могли могли поехать в одну экспедицию с заболевшими
+WITH exp_abroad AS(
+	SELECT id_expedition
+	FROM  Expeditions AS exp NATURAL JOIN Places NATURAL JOIN Status
+	WHERE (DATE '2020-05-01', DATE '2020-10-05') OVERLAPS (exp.date_of_begining, exp.date_of_end) AND "country" NOT LIKE 'Russia' AND "status" LIKE 'Passed'
+),
+exp_mem_ill AS(
+	SELECT id_member, name_of_member, surname_of_member, telephone_number
+	FROM exp_abroad NATURAL JOIN Expeditions_of_member NATURAL JOIN Members 
+)
+SELECT id_member, name_of_member, surname_of_member, telephone_number
+FROM (SELECT id_expedition 
+	  FROM exp_mem_ill NATURAL JOIN Expeditions_of_member NATURAL JOIN Expeditions NATURAL JOIN Status WHERE  status = 'Now') AS b
+	  NATURAL JOIN Expeditions_of_member NATURAL JOIN Members
+EXCEPT 
+SELECT id_member, name_of_member, surname_of_member, telephone_number
+FROM exp_mem_ill;
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+WITH exp_abroad AS(
+	SELECT id_expedition
+	FROM  Expeditions AS exp NATURAL JOIN Places NATURAL JOIN Status
+	WHERE (DATE '2020-05-01', DATE '2020-10-05') OVERLAPS (exp.date_of_begining, exp.date_of_end) AND "country" NOT LIKE 'Russia' AND "status" LIKE 'Passed'
+),
+exp_mem_ill AS(
+	SELECT id_member, name_of_member, surname_of_member, telephone_number, university
+	FROM exp_abroad NATURAL JOIN Expeditions_of_member NATURAL JOIN Members NATURAL JOIN Member_Education NATURAL JOIN Educations
+)
+
+(SELECT id_member, name_of_member, surname_of_member, telephone_number
+FROM (SELECT id_expedition 
+	  FROM exp_mem_ill NATURAL JOIN Expeditions_of_member NATURAL JOIN Expeditions NATURAL JOIN Status WHERE  status = 'Now') AS b
+	  NATURAL JOIN Expeditions_of_member NATURAL JOIN Members
+EXCEPT 
+SELECT id_member, name_of_member, surname_of_member, telephone_number
+FROM exp_mem_ill) 
+UNION 
+(SELECT id_member, name_of_member, surname_of_member, telephone_number
+FROM Members NATURAL JOIN Member_Education NATURAL JOIN Educations 
+WHERE EXISTS (SELECT university FROM exp_mem_ill WHERE Educations.university = exp_mem_ill.university )
+EXCEPT 
+SELECT id_member, name_of_member, surname_of_member, telephone_number
+FROM exp_mem_ill) ;
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- изменяет статус экспедиции и выводит контактную информацию всех участников этой экспедиции 
+WITH exp_abroad AS(
+	UPDATE Expeditions 
+	SET id_status = 4
+	WHERE id_place = (SELECT id_place FROM Places WHERE city = 'Sisian' AND country = 'Armenia')
+	RETURNING id_expedition
+)
+SELECT id_member, name_of_member, surname_of_member, telephone_number
+FROM exp_abroad NATURAL JOIN Expeditions_of_member NATURAL JOIN Members;
+
+-- изменяет дату окончания экспедиции(ошибка, тк дата окончания раскопок, не может быть меньше даты начала)
+UPDATE Expeditions
+SET date_of_end = '2019-11-25'
+WHERE name_of_expedition = 'Africa_trip'
+
+--удаляет заболевшего участника из экспедиции
+WITH mem_ill AS(
+	DELETE FROM Expeditions_of_member WHERE id_member = 31 AND id_expedition = 11
+	RETURNING id_expedition
+)
+UPDATE Expeditions SET amount_of_people=amount_of_people-1 WHERE id_expedition = (SELECT id_expedition FROM mem_ill)
+
+---------------------------------------------------------------------------------------------------------------
+SELECT * FROM Expeditions
+SELECT * FROM Members
+SELECT * FROM Expeditions_of_member WHERE id_expedition = 11
+SELECT * FROM Expeditions_of_member
